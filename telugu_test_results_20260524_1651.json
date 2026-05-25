@@ -1,0 +1,218 @@
+[
+  {
+    "text_idx": 1,
+    "desc_idx": 1,
+    "description": "A clear female Telugu newsreader speaks at a moderate pace with excellent pronunciation, warm neutra...",
+    "filename": "telugu_test_1_1_164731.wav",
+    "duration": 5.0,
+    "peak": 0.95,
+    "rms": 0.1298
+  },
+  {
+    "text_idx": 1,
+    "desc_idx": 2,
+    "description": "Priya, a native Telugu female speaker with a calm and confident voice, delivers words clearly at a n...",
+    "filename": "telugu_test_1_2_164742.wav",
+    "duration": 8.05,
+    "peak": 0.95,
+    "rms": 0.1195
+  },
+  {
+    "text_idx": 1,
+    "desc_idx": 3,
+    "description": "A professional male Telugu speaker with a deep, resonant voice speaks slowly and clearly. Excellent ...",
+    "filename": "telugu_test_1_3_164751.wav",
+    "duration": 5.33,
+    "peak": 0.95,
+    "rms": 0.1463
+  },
+  {
+    "text_idx": 1,
+    "desc_idx": 4,
+    "description": "Young adult female Telugu speaker with a bright, friendly voice. Speaks clearly with good rhythm and...",
+    "filename": "telugu_test_1_4_164759.wav",
+    "duration": 5.2,
+    "peak": 0.95,
+    "rms": 0.1556
+  },
+  {
+    "text_idx": 1,
+    "desc_idx": 5,
+    "description": "Mature female Telugu voice artist with very articulate and expressive yet controlled delivery. Moder...",
+    "filename": "telugu_test_1_5_164807.wav",
+    "duration": 5.0,
+    "peak": 0.95,
+    "rms": 0.1539
+  },
+  {
+    "text_idx": 1,
+    "desc_idx": 6,
+    "description": "Neutral Indian English-influenced Telugu speaker (clear bilingual style) with high clarity, moderate...",
+    "filename": "telugu_test_1_6_164814.wav",
+    "duration": 4.78,
+    "peak": 0.95,
+    "rms": 0.153
+  },
+  {
+    "text_idx": 2,
+    "desc_idx": 1,
+    "description": "A clear female Telugu newsreader speaks at a moderate pace with excellent pronunciation, warm neutra...",
+    "filename": "telugu_test_2_1_164822.wav",
+    "duration": 4.92,
+    "peak": 0.95,
+    "rms": 0.117
+  },
+  {
+    "text_idx": 2,
+    "desc_idx": 2,
+    "description": "Priya, a native Telugu female speaker with a calm and confident voice, delivers words clearly at a n...",
+    "filename": "telugu_test_2_2_164834.wav",
+    "duration": 7.34,
+    "peak": 0.95,
+    "rms": 0.1299
+  },
+  {
+    "text_idx": 2,
+    "desc_idx": 3,
+    "description": "A professional male Telugu speaker with a deep, resonant voice speaks slowly and clearly. Excellent ...",
+    "filename": "telugu_test_2_3_164843.wav",
+    "duration": 5.41,
+    "peak": 0.95,
+    "rms": 0.1809
+  },
+  {
+    "text_idx": 2,
+    "desc_idx": 4,
+    "description": "Young adult female Telugu speaker with a bright, friendly voice. Speaks clearly with good rhythm and...",
+    "filename": "telugu_test_2_4_164851.wav",
+    "duration": 4.97,
+    "peak": 0.95,
+    "rms": 0.1254
+  },
+  {
+    "text_idx": 2,
+    "desc_idx": 5,
+    "description": "Mature female Telugu voice artist with very articulate and expressive yet controlled delivery. Moder...",
+    "filename": "telugu_test_2_5_164859.wav",
+    "duration": 5.26,
+    "peak": 0.95,
+    "rms": 0.1288
+  },
+  {
+    "text_idx": 2,
+    "desc_idx": 6,
+    "description": "Neutral Indian English-influenced Telugu speaker (clear bilingual style) with high clarity, moderate...",
+    "filename": "telugu_test_2_6_164908.wav",
+    "duration": 4.99,
+    "peak": 0.95,
+    "rms": 0.1673
+  },
+  {
+    "text_idx": 3,
+    "desc_idx": 1,
+    "description": "A clear female Telugu newsreader speaks at a moderate pace with excellent pronunciation, warm neutra...",
+    "filename": "telugu_test_3_1_164919.wav",
+    "duration": 6.62,
+    "peak": 0.95,
+    "rms": 0.144
+  },
+  {
+    "text_idx": 3,
+    "desc_idx": 2,
+    "description": "Priya, a native Telugu female speaker with a calm and confident voice, delivers words clearly at a n...",
+    "filename": "telugu_test_3_2_164935.wav",
+    "duration": 9.75,
+    "peak": 0.95,
+    "rms": 0.129
+  },
+  {
+    "text_idx": 3,
+    "desc_idx": 3,
+    "description": "A professional male Telugu speaker with a deep, resonant voice speaks slowly and clearly. Excellent ...",
+    "filename": "telugu_test_3_3_164946.wav",
+    "duration": 6.84,
+    "peak": 0.95,
+    "rms": 0.1475
+  },
+  {
+    "text_idx": 3,
+    "desc_idx": 4,
+    "description": "Young adult female Telugu speaker with a bright, friendly voice. Speaks clearly with good rhythm and...",
+    "filename": "telugu_test_3_4_164957.wav",
+    "duration": 5.91,
+    "peak": 0.95,
+    "rms": 0.1768
+  },
+  {
+    "text_idx": 3,
+    "desc_idx": 5,
+    "description": "Mature female Telugu voice artist with very articulate and expressive yet controlled delivery. Moder...",
+    "filename": "telugu_test_3_5_165009.wav",
+    "duration": 7.07,
+    "peak": 0.95,
+    "rms": 0.1426
+  },
+  {
+    "text_idx": 3,
+    "desc_idx": 6,
+    "description": "Neutral Indian English-influenced Telugu speaker (clear bilingual style) with high clarity, moderate...",
+    "filename": "telugu_test_3_6_165018.wav",
+    "duration": 5.31,
+    "peak": 0.95,
+    "rms": 0.1583
+  },
+  {
+    "text_idx": 4,
+    "desc_idx": 1,
+    "description": "A clear female Telugu newsreader speaks at a moderate pace with excellent pronunciation, warm neutra...",
+    "filename": "telugu_test_4_1_165029.wav",
+    "duration": 4.99,
+    "peak": 0.95,
+    "rms": 0.1243
+  },
+  {
+    "text_idx": 4,
+    "desc_idx": 2,
+    "description": "Priya, a native Telugu female speaker with a calm and confident voice, delivers words clearly at a n...",
+    "filename": "telugu_test_4_2_165048.wav",
+    "duration": 7.64,
+    "peak": 0.95,
+    "rms": 0.1325
+  },
+  {
+    "text_idx": 4,
+    "desc_idx": 3,
+    "description": "A professional male Telugu speaker with a deep, resonant voice speaks slowly and clearly. Excellent ...",
+    "filename": "telugu_test_4_3_165103.wav",
+    "duration": 5.8,
+    "peak": 0.95,
+    "rms": 0.1194
+  },
+  {
+    "text_idx": 4,
+    "desc_idx": 4,
+    "description": "Young adult female Telugu speaker with a bright, friendly voice. Speaks clearly with good rhythm and...",
+    "filename": "telugu_test_4_4_165120.wav",
+    "duration": 5.29,
+    "peak": 0.95,
+    "rms": 0.1528
+  },
+  {
+    "text_idx": 4,
+    "desc_idx": 5,
+    "description": "Mature female Telugu voice artist with very articulate and expressive yet controlled delivery. Moder...",
+    "filename": "telugu_test_4_5_165135.wav",
+    "duration": 5.67,
+    "peak": 0.95,
+    "rms": 0.1453
+  },
+  {
+    "text_idx": 4,
+    "desc_idx": 6,
+    "description": "Neutral Indian English-influenced Telugu speaker (clear bilingual style) with high clarity, moderate...",
+    "filename": "telugu_test_4_6_165153.wav",
+    "duration": 4.91,
+    "peak": 0.95,
+    "rms": 0.1147
+  }
+]
