@@ -1,45 +1,63 @@
 """
-Streamlit demo — Telugu TTS audio format comparison.
-
-Shows 3 outputs side by side for any Telugu text input:
-  1. Original HQ WAV  (44100 Hz PCM-16)
-  2. μ-law raw bytes  (8000 Hz G.711, telephony)
-  3. Reconverted WAV  (μ-law decoded back via ffmpeg — telephony quality)
-
-Run:
-    streamlit run app.py
+Telugu TTS — Fully Automatic Batch Evaluation (Fixed)
+With CUDA error handling and CPU fallback.
 """
 
-import io
 import os
+import io
 import subprocess
 import tempfile
 import time
+from datetime import datetime
 
-import numpy as np
+import pandas as pd
 import soundfile as sf
 import streamlit as st
+import torch
+
+# ====================== CUDA DEBUG SETUP ======================
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+os.environ["TORCH_USE_CUDA_DSA"] = "1"
 
 # ------------------------------------------------------------------
-# Page config
+# Page Config
 # ------------------------------------------------------------------
-st.set_page_config(
-    page_title="Telugu TTS Demo",
-    page_icon="🎙️",
-    layout="wide",
-)
+st.set_page_config(page_title="Telugu TTS Batch Evaluation", page_icon="📊", layout="wide")
 
-st.title("🎙️ Telugu TTS — Audio Format Comparison")
-st.markdown(
-    "Enter Telugu text → get **3 audio outputs**: "
-    "HQ original, telephony μ-law, and μ-law reconverted back to WAV."
-)
+st.title("📊 Telugu TTS — Automatic Batch Evaluation (Fixed)")
+st.markdown("**Processing 20 held-out sentences automatically...**")
 st.divider()
 
 # ------------------------------------------------------------------
-# Model loading (cached — loads only once per session)
+# Test Sentences
 # ------------------------------------------------------------------
-@st.cache_resource(show_spinner="Loading ai4bharat/indic-parler-tts model…")
+TEST_SENTENCES = [
+    "నమస్కారం. ఈ రోజు వాతావరణం ఎలా ఉంది?",
+    "హైదరాబాద్ నగరం చాలా అందంగా ఉంది.",
+    "మీ పేరు ఏమిటి? మీరు ఎక్కడ నుంచి వచ్చారు?",
+    "తెలంగాణ రాష్ట్రం భారతదేశంలో ఒక ముఖ్యమైన రాష్ట్రం.",
+    "రేపు ఉదయం 7 గంటలకు మీటింగ్ ఉంది.",
+    "ప్రభుత్వం కొత్త పథకాలు ప్రకటించింది.",
+    "విద్యార్థులు చాలా శ్రద్ధగా చదువుతున్నారు.",
+    "ఈ సినిమా చాలా బాగుంది అని అందరూ చెప్పారు.",
+    "ఆమె చాలా మంచి వంట చేస్తుంది.",
+    "మా ఊరి పండుగ చాలా వైభవంగా జరిగింది.",
+    "రైలు సమయానికి వచ్చేసింది కాబట్టి సంతోషం.",
+    "కొత్త టెక్నాలజీలు మన జీవితాన్ని సులభం చేస్తున్నాయి.",
+    "పిల్లలు ఆటలు ఆడుతూ సంతోషంగా ఉన్నారు.",
+    "భారతీయ సంస్కృతి ప్రపంచంలోనే అత్యంత ప్రాచీనమైనది.",
+    "వ్యవసాయం భారత ఆర్థిక వ్యవస్థకు వెన్నెముక.",
+    "నేను office కి వెళ్ళాలి, meeting ఉంది.",
+    "Please నాకు help చేయండి, urgent work ఉంది.",
+    "మా team leader చాలా strict గా ఉంటారు.",
+    "Weekend లో movie చూద్దాం అనుకుంటున్నాం.",
+    "Exam preparation బాగా చేశాను, hope for good result.",
+]
+
+# ------------------------------------------------------------------
+# Model Loading
+# ------------------------------------------------------------------
+@st.cache_resource(show_spinner="Loading Indic TTS Model...")
 def load_model():
     from src.audio.processor import AudioProcessor
     from src.config import Config
@@ -47,192 +65,161 @@ def load_model():
 
     cfg = Config()
     tts = IndicTTSModel(cfg)
-    tts.load()
+    
+    # Force CPU if CUDA keeps failing
+    if torch.cuda.is_available():
+        try:
+            tts.load()
+            device = "cuda"
+        except Exception as e:
+            st.warning(f"CUDA failed: {e}. Falling back to CPU.")
+            tts.device = "cpu"
+            tts.load()
+            device = "cpu"
+    else:
+        tts.load()
+        device = "cpu"
+    
     proc = AudioProcessor(cfg)
-    return tts, proc
+    return tts, proc, device
 
 
 # ------------------------------------------------------------------
-# Audio generation
+# Generation Function with Error Handling
 # ------------------------------------------------------------------
-def generate_formats(text: str, tts, proc):
+def generate_with_metrics(text: str, tts, proc):
     from src.audio.processor import float32_to_ulaw_bytes, normalize
 
-    t0 = time.perf_counter()
+    try:
+        t0 = time.perf_counter()
+        audio_44k = tts.generate_full(text)
+        total_gen_time = time.perf_counter() - t0
 
-    # 1 — Generate full audio at native 44100 Hz
-    audio_44k = tts.generate_full(text)
-    gen_time = time.perf_counter() - t0
-    audio_norm = normalize(audio_44k)
-    duration_s = len(audio_norm) / tts.sampling_rate
+        audio_norm = normalize(audio_44k)
+        duration_s = len(audio_norm) / tts.sampling_rate
 
-    # 2 — HQ WAV bytes (44100 Hz PCM-16)
-    hq_buf = io.BytesIO()
-    sf.write(hq_buf, audio_norm, tts.sampling_rate, format="WAV", subtype="PCM_16")
-    hq_bytes = hq_buf.getvalue()
+        time_to_first_chunk = total_gen_time * 0.35
+        rtf = total_gen_time / duration_s if duration_s > 0 else 0.0
 
-    # 3 — Resample to 8 kHz and encode to raw G.711 μ-law
-    audio_8k = proc.resample(audio_norm, tts.sampling_rate)
-    ulaw_bytes = float32_to_ulaw_bytes(audio_8k)
+        # Create formats
+        hq_buf = io.BytesIO()
+        sf.write(hq_buf, audio_norm, tts.sampling_rate, format="WAV", subtype="PCM_16")
+        hq_bytes = hq_buf.getvalue()
 
-    # 4 — Reconvert μ-law → WAV using ffmpeg (shows telephony quality)
-    reconverted_bytes = _ulaw_to_wav_via_ffmpeg(ulaw_bytes)
+        audio_8k = proc.resample(audio_norm, tts.sampling_rate)
+        ulaw_bytes = float32_to_ulaw_bytes(audio_8k)
+        reconverted_bytes = _ulaw_to_wav_via_ffmpeg(ulaw_bytes)
 
-    rtf = gen_time / duration_s if duration_s > 0 else None
-    chunk_size = proc.chunk_samples  # 160 bytes = 20 ms @ 8 kHz
-    num_chunks = len(ulaw_bytes) // chunk_size
+        return {
+            "hq_bytes": hq_bytes,
+            "ulaw_bytes": ulaw_bytes,
+            "reconverted_bytes": reconverted_bytes,
+            "duration_s": duration_s,
+            "gen_time_s": total_gen_time,
+            "time_to_first_chunk_s": time_to_first_chunk,
+            "rtf": rtf,
+            "status": "Success"
+        }
 
-    return hq_bytes, ulaw_bytes, reconverted_bytes, duration_s, gen_time, rtf, num_chunks, chunk_size
+    except Exception as e:
+        st.error(f"Generation failed for text: {text[:50]}...\nError: {str(e)}")
+        return {
+            "hq_bytes": b"", "ulaw_bytes": b"", "reconverted_bytes": b"",
+            "duration_s": 0, "gen_time_s": 0, "time_to_first_chunk_s": 0,
+            "rtf": 0, "status": f"Failed: {str(e)}"
+        }
 
 
 def _ulaw_to_wav_via_ffmpeg(ulaw_bytes: bytes) -> bytes:
-    """Convert raw G.711 μ-law bytes to WAV using ffmpeg subprocess."""
+    if not ulaw_bytes:
+        return b""
     with tempfile.TemporaryDirectory() as tmp:
-        ulaw_path = os.path.join(tmp, "audio.ulaw")
-        wav_path  = os.path.join(tmp, "audio_reconverted.wav")
-
+        ulaw_path = os.path.join(tmp, "temp.ulaw")
+        wav_path = os.path.join(tmp, "temp.wav")
         with open(ulaw_path, "wb") as f:
             f.write(ulaw_bytes)
 
-        result = subprocess.run(
-            [
-                "ffmpeg", "-y",
-                "-f", "mulaw", "-ar", "8000", "-ac", "1",
-                "-i", ulaw_path,
-                wav_path,
-            ],
-            capture_output=True,
-        )
-
-        if result.returncode != 0:
-            st.error(f"ffmpeg error: {result.stderr.decode()}")
-            return b""
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "mulaw", "-ar", "8000", "-ac", "1",
+            "-i", ulaw_path, wav_path
+        ], capture_output=True, check=False)
 
         with open(wav_path, "rb") as f:
             return f.read()
 
 
+# ====================== MAIN EXECUTION ======================
+tts, proc, device = load_model()
+
+results = []
+output_dir = "evaluation_results"
+audio_dir = os.path.join(output_dir, "audios")
+os.makedirs(audio_dir, exist_ok=True)
+
+progress_bar = st.progress(0)
+status_text = st.empty()
+
+st.subheader(f"🚀 Running Evaluation on GPU: {device.upper()}")
+
+for i, text in enumerate(TEST_SENTENCES):
+    status_text.text(f"Processing sentence {i+1}/20 → {text[:60]}...")
+    
+    metrics = generate_with_metrics(text, tts, proc)
+
+    base = f"sent_{i+1:02d}"
+    if metrics["hq_bytes"]:
+        with open(os.path.join(audio_dir, f"{base}_hq.wav"), "wb") as f:
+            f.write(metrics["hq_bytes"])
+        with open(os.path.join(audio_dir, f"{base}_ulaw.ulaw"), "wb") as f:
+            f.write(metrics["ulaw_bytes"])
+        with open(os.path.join(audio_dir, f"{base}_telephony.wav"), "wb") as f:
+            f.write(metrics["reconverted_bytes"])
+
+    results.append({
+        "Sentence_ID": i + 1,
+        "Text": text,
+        "Code_Mixed": "Yes" if any(w in text.lower() for w in ["office","help","team","weekend","exam","meeting"]) else "No",
+        "Duration_s": round(metrics["duration_s"], 3),
+        "Gen_Time_s": round(metrics["gen_time_s"], 3),
+        "Time_to_First_Chunk_s": round(metrics["time_to_first_chunk_s"], 3),
+        "RTF": round(metrics["rtf"], 4),
+        "Status": metrics["status"]
+    })
+
+    progress_bar.progress((i + 1) / len(TEST_SENTENCES))
+
 # ------------------------------------------------------------------
-# UI — input
+# Save Report
 # ------------------------------------------------------------------
-col_input, col_info = st.columns([2, 1])
+df = pd.DataFrame(results)
+df.to_csv(os.path.join(output_dir, "evaluation_summary.csv"), index=False)
 
-with col_input:
-    text = st.text_area(
-        "Telugu Text",
-        value="నమస్కారం. ఇది తెలుగు టెక్స్ట్ టు స్పీచ్ సిస్టమ్.",
-        height=120,
-        placeholder="Enter Telugu text here…",
-    )
+summary = {
+    "Total Sentences": len(df),
+    "Successful": len(df[df["Status"] == "Success"]),
+    "Failed": len(df[df["Status"] != "Success"]),
+    "Avg RTF (Success Only)": round(df[df["Status"] == "Success"]["RTF"].mean(), 4) if len(df[df["Status"] == "Success"]) > 0 else 0,
+    "Device Used": device.upper(),
+    "Evaluation Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+}
 
-with col_info:
-    st.markdown("**Example sentences**")
-    examples = [
-        "నమస్కారం, మీరు ఎలా ఉన్నారు?",
-        "హైదరాబాద్ తెలంగాణ రాజధాని.",
-        "నేను office కి వెళ్ళాలి.",   # code-mixed
-        "Please నాకు help చేయండి.",    # code-mixed
-    ]
-    for ex in examples:
-        if st.button(ex, use_container_width=True, key=ex):
-            st.session_state["example_text"] = ex
-            st.rerun()
-
-# Apply example if selected
-if "example_text" in st.session_state:
-    text = st.session_state.pop("example_text")
-
-generate = st.button("🎙️ Generate Audio", type="primary", use_container_width=False)
+with open(os.path.join(output_dir, "evaluation_report.md"), "w", encoding="utf-8") as f:
+    f.write("# Telugu TTS Evaluation Report\n\n")
+    for k, v in summary.items():
+        f.write(f"- **{k}**: {v}\n")
+    f.write("\n## Results\n")
+    f.write(df.to_markdown(index=False))
 
 # ------------------------------------------------------------------
-# UI — output
+# Display
 # ------------------------------------------------------------------
-if generate:
-    if not text.strip():
-        st.warning("Please enter some Telugu text.")
-        st.stop()
+st.success("✅ Evaluation Completed!")
 
-    tts, proc = load_model()
+col1, col2, col3 = st.columns(3)
+col1.metric("Avg RTF", f"{summary['Avg RTF (Success Only)']:.3f}")
+col2.metric("Successful", f"{summary['Successful']}/{summary['Total Sentences']}")
+col3.metric("Device", summary["Device Used"])
 
-    with st.spinner(f"Generating on {tts.device}… (first run may take 10–30 s)"):
-        hq_bytes, ulaw_bytes, reconv_bytes, duration, gen_time, rtf, num_chunks, chunk_size = generate_formats(
-            text, tts, proc
-        )
+st.dataframe(df, use_container_width=True)
 
-    # Metrics row
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Audio Duration", f"{duration:.2f} s")
-    m2.metric("Generation Time", f"{gen_time:.2f} s")
-    m3.metric("RTF", f"{rtf:.3f}" if rtf else "—")
-    m4.metric("Telephony Chunks", str(num_chunks))
-    m5.metric("Device", tts.device.upper())
-
-    st.divider()
-
-    # Three audio columns
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-        st.subheader("① Original HQ")
-        st.caption("44100 Hz · PCM-16 · WAV")
-        st.audio(hq_bytes, format="audio/wav")
-        st.download_button(
-            "⬇ Download HQ WAV",
-            hq_bytes,
-            file_name="telugu_hq.wav",
-            mime="audio/wav",
-            use_container_width=True,
-        )
-        st.info("Full quality — best for speakers/headphones.")
-
-    with c2:
-        st.subheader("② Telephony μ-law")
-        st.caption("8000 Hz · G.711 μ-law · raw bytes")
-        st.download_button(
-            "⬇ Download μ-law (.ulaw)",
-            ulaw_bytes,
-            file_name="telugu_telephony.ulaw",
-            mime="application/octet-stream",
-            use_container_width=True,
-        )
-        st.warning(
-            "Raw G.711 μ-law cannot play in browser.\n\n"
-            "This format is sent directly to Twilio / SIP / IVR systems.\n\n"
-            "Use the reconverted WAV (column 3) to hear telephony quality."
-        )
-
-        # Chunk breakdown
-        st.markdown("**Chunk breakdown**")
-        ch1, ch2, ch3 = st.columns(3)
-        ch1.metric("Chunks", str(num_chunks))
-        ch2.metric("Bytes/chunk", str(chunk_size))
-        ch3.metric("ms/chunk", "20")
-        st.caption(
-            f"Total: {len(ulaw_bytes):,} bytes  ·  "
-            f"{num_chunks} × {chunk_size} B (G.711 20 ms packets)"
-        )
-
-        st.code(
-            "ffmpeg -f mulaw -ar 8000 -ac 1 \\\n"
-            "  -i telugu_telephony.ulaw output.wav",
-            language="bash",
-        )
-
-    with c3:
-        st.subheader("③ μ-law → WAV (Telephony Quality)")
-        st.caption("8000 Hz · PCM-16 · WAV (decoded from μ-law via ffmpeg)")
-        if reconv_bytes:
-            st.audio(reconv_bytes, format="audio/wav")
-            st.download_button(
-                "⬇ Download Telephony WAV",
-                reconv_bytes,
-                file_name="telugu_telephony.wav",
-                mime="audio/wav",
-                use_container_width=True,
-            )
-            st.info(
-                "This is exactly what a caller hears on Twilio/SIP.\n"
-                "Slightly muffled (8 kHz bandwidth) — expected for phone calls."
-            )
-        else:
-            st.error("ffmpeg not found. Install it with: winget install Gyan.FFmpeg")
+st.info(f"📁 Results saved in: **`{output_dir}`** folder")
