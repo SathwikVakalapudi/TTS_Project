@@ -1,231 +1,247 @@
-# Telugu TTS — Real-Time Telephony Streaming
+# 🎙️ Telugu Real-Time TTS for Telephony
 
-Self-hosted Telugu Text-to-Speech system using `ai4bharat/indic-parler-tts`.
-Streams 8 kHz G.711 μ-law PCM audio for Twilio, SIP, IVR, and real-time AI voice agents.
+A high-performance, self-hosted Text-to-Speech (TTS) engine specifically designed for real-time telephony applications like Twilio, SIP, IVR systems, and AI voice agents.
 
-**System:** NVIDIA RTX 5050 Laptop GPU (8 GB) · CUDA 12.8 · Python 3.13
+This project bridges the gap between modern generative AI models and legacy telephony infrastructure, allowing you to stream Telugu speech with minimal latency.
 
 ---
 
-## Setup
+# 🚀 The Core Problem
 
-### 1. Clone and create virtualenv
+Standard TTS models are often too slow for phone calls, leading to awkward silences and delayed responses.
+
+This project solves that problem using a **Streaming Producer-Consumer Architecture**, ensuring the first syllable is heard by the caller as soon as the model generates it — instead of waiting for the entire sentence to finish processing.
+
+---
+
+# 🏗️ Architecture at a Glance
+
+The system uses an asynchronous streaming workflow to maintain smooth real-time audio output.
+
+## Flow Overview
+
+1. **API Layer (FastAPI)**
+   - Receives incoming synthesis requests
+   - Starts the audio streaming pipeline
+
+2. **Worker Thread**
+   - Runs the `ai4bharat/indic-parler-tts` model in the background
+   - Prevents blocking the main FastAPI event loop
+
+3. **Processing Queue**
+   - Buffers generated audio chunks
+   - Uses a thread-safe queue for smooth streaming
+
+4. **Audio Transformer Engine**
+   - Converts high-quality model output into:
+     - 8kHz audio
+     - G.711 μ-law encoding
+   - This is the standard format required by telephone networks
+
+---
+
+# 🛠️ Prerequisites
+
+## Hardware
+- NVIDIA GPU (CUDA-capable) strongly recommended for real-time performance
+
+## Environment
+- Python 3.13+
+- CUDA 12.8
+
+## Model Access
+You must have access to:
+
 ```bash
-git clone <repo-url>
-cd TTS_system
+ai4bharat/indic-parler-tts
+
+on Hugging Face.
+
+⚡ Quick Start
+1️⃣ Clone the Repository
+git clone https://github.com/SathwikVakalapudi/TTS_Project
+cd TTS_Project
+2️⃣ Create Virtual Environment
+Linux / Mac
 python -m venv venv
-.\venv\Scripts\Activate.ps1        # Windows
-# source venv/bin/activate         # Linux/Mac
-```
-
-### 2. Install dependencies
-```bash
+source venv/bin/activate
+Windows
+python -m venv venv
+venv\Scripts\activate
+3️⃣ Install Dependencies
 pip install -r requirements.txt
-```
+4️⃣ Authenticate with Hugging Face
+huggingface-cli login
 
-### 3. Download model weights (~5 GB, one-time)
-The model is gated. First request access at https://huggingface.co/ai4bharat/indic-parler-tts, then:
-```bash
-huggingface-cli login        # paste your HF token
+Enter your Hugging Face token when prompted.
+
+5️⃣ Download Model Weights
 python scripts/download_model.py
-```
-
-### 4. Start the server
-```bash
+6️⃣ Run the Server
 uvicorn src.main:app --host 0.0.0.0 --port 8000
-```
-Wait for: `Model ready — native sample rate: 44100 Hz | device: cuda`
 
----
+Server will start at:
 
-## API Endpoints
+http://localhost:8000
+📡 API Endpoints
+Endpoint	Purpose	Output Format
+/synthesize/stream	Real-time streaming for calls	G.711 μ-law (8kHz)
+/synthesize/full	Standard synthesis	WAV (8kHz)
+/synthesize/hq	High-quality synthesis	WAV (44.1kHz)
+/health	Server health check	JSON
+🎯 Designed For
+Twilio Voice Bots
+SIP Telephony
+IVR Systems
+AI Call Centers
+Conversational Voice Agents
+Real-Time Telugu Assistants
+WebRTC Audio Pipelines
+🧠 Behind the Scenes
+Why 8kHz G.711?
 
-| Endpoint | Output | Use Case |
-|---|---|---|
-| `POST /synthesize/stream` | 8kHz μ-law streaming | **Production telephony** |
-| `POST /synthesize` | 8kHz μ-law streaming | Legacy streaming |
-| `POST /synthesize/full` | 8kHz PCM-16 WAV | Telephony evaluation |
-| `POST /synthesize/hq` | 44100Hz PCM-16 WAV | Quality evaluation |
-| `GET /health` | JSON | Health check |
+Modern AI TTS models typically generate audio at:
 
-### Request body (all POST endpoints)
-```json
-{
-  "text": "నమస్కారం. ఇది తెలుగు వాయిస్ సిస్టమ్.",
-  "description": null
-}
-```
-`description` is optional. Default speaker: *Divya* (clear female Telugu voice).
+44.1kHz
+48kHz
 
----
+Traditional telephony systems only support:
 
-## Usage Examples
+8kHz mono audio
 
-### PowerShell (Windows)
-```powershell
-# High-quality WAV (best for testing)
-$body = [System.Text.Encoding]::UTF8.GetBytes('{"text": "నమస్కారం."}')
-Invoke-WebRequest -Uri "http://localhost:8000/synthesize/hq" `
-  -Method POST -ContentType "application/json; charset=utf-8" `
-  -Body $body -OutFile test_hq.wav
+If high-quality audio is streamed directly into a phone network:
 
-# Telephony WAV (8kHz)
-Invoke-WebRequest -Uri "http://localhost:8000/synthesize/full" `
-  -Method POST -ContentType "application/json; charset=utf-8" `
-  -Body $body -OutFile test_8k.wav
+Audio may fail
+Voice may sound robotic or metallic
+Latency increases significantly
 
-# Raw μ-law stream
-Invoke-WebRequest -Uri "http://localhost:8000/synthesize/stream" `
-  -Method POST -ContentType "application/json; charset=utf-8" `
-  -Body $body -OutFile test.ulaw
-```
+This project automatically:
 
-### curl
-```bash
-# HQ WAV
-curl -X POST http://localhost:8000/synthesize/hq \
-  -H "Content-Type: application/json" \
-  -d '{"text": "నమస్కారం."}' \
-  --output test_hq.wav
+Resamples audio
+Encodes into G.711 μ-law
+Streams telephony-compatible chunks in real time
 
-# Stream μ-law and play with ffplay
-curl -X POST http://localhost:8000/synthesize/stream \
-  -H "Content-Type: application/json" \
-  -d '{"text": "నమస్కారం."}' | \
-  ffplay -f mulaw -ar 8000 -ac 1 -
+Result:
+✅ Low latency
+✅ Smooth playback
+✅ Natural phone-call audio quality
 
-# Health check
-curl http://localhost:8000/health
-```
+⚙️ Real-Time Streaming Architecture
+Producer → Consumer Pipeline
+TTS Model (Producer)
+        ↓
+Audio Queue
+        ↓
+Audio Processor
+        ↓
+G.711 Encoder
+        ↓
+Streaming API Response
+        ↓
+Telephony Client (Twilio/SIP)
 
-### Play μ-law file with ffplay
-```bash
-ffplay -f mulaw -ar 8000 -ac 1 test.ulaw
-```
+This architecture allows:
 
----
+Continuous audio generation
+Chunk-by-chunk streaming
+Reduced buffering delays
+Near real-time interaction
+📊 Real-Time Factor (RTF)
 
-## Streaming Architecture
+The project includes a benchmarking suite:
 
-```
-POST /synthesize/stream
-        │
-        ▼
-  [Worker Thread]  model.generate_streaming()   ← GPU-bound, blocking
-        │  threading.Queue (maxsize=64, backpressure)
-        ▼
-  [Event Loop]  normalize → resample 44100→8kHz → G.711 μ-law encode
-        │  160-byte chunks (20 ms)
-        ▼
-  StreamingResponse  →  Twilio / SIP / IVR / AI voice agent
-```
+scripts/benchmark.py
+What is RTF?
+RTF < 1
 
-The asyncio event loop is **never blocked** — model runs in a worker thread,
-chunks are passed via a thread-safe queue read with `run_in_executor`.
+✅ Audio is generated faster than playback speed
 
----
+Ideal for real-time calls.
 
-## Benchmark
+RTF > 1
 
-Run the full 20-sentence benchmark (TTFA + RTF):
-```bash
-python scripts/benchmark.py
-python scripts/benchmark.py --output results/benchmark.csv
-```
+❌ Generation is slower than playback
 
-Output includes:
-- Time-to-First-Audio-Chunk (TTFA)
-- Real-Time Factor (RTF = inference_time / audio_duration)
-- Audio duration per sentence
-- Separate stats for pure Telugu vs code-mixed
+This may cause:
 
----
+Choppy audio
+Delays
+Caller interruptions
+📁 Project Structure
+TTS_Project/
+│
+├── src/
+│   ├── main.py
+│   ├── api/
+│   ├── audio/
+│   ├── models/
+│   └── streaming/
+│
+├── scripts/
+│   ├── download_model.py
+│   └── benchmark.py
+│
+├── requirements.txt
+├── README.md
+└── .gitignore
+🔥 Performance Features
+Real-time chunk streaming
+GPU accelerated inference
+Low-latency architecture
+Thread-safe processing queues
+Telephony-compatible audio pipeline
+Async FastAPI server
+Modular streaming engine
+🌍 Future Improvements
 
-## Generate Audio Samples
+Potential areas for contribution:
 
-```bash
-# Generate all 20 samples (HQ + telephony formats)
-python scripts/evaluate.py --output_dir samples/
+Opus codec support for WebRTC
+TensorRT optimization
+Multi-speaker Telugu voices
+Additional Indic language support
+Dynamic voice cloning
+Streaming WebSocket API
+Kubernetes deployment support
+🤝 Contributing
 
-# Quick test — 3 samples with different speaker descriptions
-python scripts/quick_test.py
-```
+Contributions are welcome!
 
-Output structure:
-```
-samples/
-  hq_44k/          ← 44100 Hz WAV, best quality
-  telephony_8k_ulaw/ ← raw G.711 μ-law, telephony-ready
-```
+If you'd like to improve the system:
 
----
+Fork the repository
+Create a feature branch
+Submit a pull request
 
-## Run Tests
+Ideas:
 
-```bash
-# All tests (model tests auto-skip if not installed)
-pytest tests/ -v
+Faster inference optimization
+Better streaming codecs
+Improved buffering strategies
+Additional language support
+❤️ Acknowledgements
 
-# Audio processing only (no GPU)
-pytest tests/test_audio.py tests/test_streaming.py -v
+Built using:
 
-# Streaming tests only
-pytest tests/test_streaming.py -v
-```
+FastAPI
+Hugging Face Transformers
+PyTorch
+Indic Parler TTS
+CUDA
 
----
+Special thanks to the Telugu AI and open-source community.
 
-## Telephony Compatibility
+📜 License
 
-| System | Format | Endpoint |
-|---|---|---|
-| Twilio Media Streams | 8kHz μ-law, raw bytes | `/synthesize/stream` |
-| Asterisk / FreePBX | 8kHz μ-law (G.711) | `/synthesize/stream` |
-| SIP / RTP | 20ms packets, G.711 μ-law | `/synthesize/stream` |
-| IVR platforms | 8kHz WAV or raw μ-law | `/synthesize/full` or `/synthesize/stream` |
+This project is licensed under the MIT License.
 
-Each streamed chunk is **160 bytes = 20 ms** — the standard G.711 RTP packet size.
+⭐ Support
 
----
+If you found this project useful:
 
-## Project Structure
+Star the repository
+Share it with the community
+Contribute improvements
+🇮🇳 Built for the Future of Telugu Voice AI
 
-```
-src/
-  config.py                  — model, audio, Telugu settings
-  main.py                    — FastAPI app + all endpoints
-  models/
-    indic_tts_model.py       — model loading + streaming inference
-  audio/
-    processor.py             — resample, G.711 μ-law encode, WAV export
-  streaming/
-    generator.py             — true async streaming generator
-  utils/
-    helpers.py               — Timer, InferenceMetrics
-
-scripts/
-  download_model.py          — pre-cache HF model weights
-  quick_test.py              — fast offline audio test
-  benchmark.py               — TTFA + RTF benchmark (20 sentences)
-  evaluate.py                — generate + save 20 audio samples
-  generate_samples.py        — bulk sample generation
-  benchmark_cartesia.py      — compare with Cartesia API
-
-tests/
-  test_audio.py              — audio processing unit tests
-  test_streaming.py          — async streaming tests
-  test_api.py                — API endpoint tests (mocked model)
-  test_model.py              — model integration tests
-```
-
----
-
-## Model Details
-
-- **Model:** `ai4bharat/indic-parler-tts` (Parler-TTS architecture, no fine-tuning)
-- **Languages:** Telugu (te) + code-mixed Telugu-English
-- **Default speaker:** Divya — female, moderate pace, clear voice
-- **Native output:** 44100 Hz float32 PCM
-- **API output:** 8000 Hz G.711 μ-law (telephony) or 44100 Hz WAV (HQ)
-- **Text encoder:** `google/flan-t5-large`
-- **Audio codec:** DAC 44kHz (`ylacombe/dac_44khz`)
+Empowering real-time conversational AI systems with natural Telugu speech for telephony and beyond.
