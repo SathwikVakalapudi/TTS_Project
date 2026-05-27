@@ -1,173 +1,311 @@
 # 🎙️ Telugu Real-Time TTS for Telephony
 
-A high-performance, self-hosted Text-to-Speech (TTS) engine specifically designed for real-time telephony applications like Twilio, SIP, IVR systems, and AI voice agents.
+A high-performance, self-hosted Text-to-Speech (TTS) engine built specifically for:
 
-This project bridges the gap between modern generative AI models and legacy telephony infrastructure, allowing you to stream Telugu speech with minimal latency.
+- 📞 Twilio Voice Bots
+- ☎️ SIP Calling Systems
+- 🤖 AI Voice Agents
+- 📢 IVR Systems
+- 🌐 Real-Time Conversational AI
 
----
-
-# 🚀 The Core Problem
-
-Standard TTS models are often too slow for phone calls, leading to awkward silences and delayed responses.
-
-This project solves that problem using a **Streaming Producer-Consumer Architecture**, ensuring the first syllable is heard by the caller as soon as the model generates it — instead of waiting for the entire sentence to finish processing.
+This project enables **low-latency Telugu speech streaming** over telephony networks by combining modern generative AI with traditional phone-call audio standards.
 
 ---
 
-# 🏗️ Architecture at a Glance
+# 🚀 Why This Project Exists
 
-The system uses an asynchronous streaming workflow to maintain smooth real-time audio output.
+Traditional TTS systems generate the **entire audio output first** before sending it to the caller.
 
-## Flow Overview
+That creates:
 
-1. **API Layer (FastAPI)**
-   - Receives incoming synthesis requests
-   - Starts the audio streaming pipeline
+- ❌ Long pauses
+- ❌ Delayed responses
+- ❌ Poor call experience
 
-2. **Worker Thread**
-   - Runs the `ai4bharat/indic-parler-tts` model in the background
-   - Prevents blocking the main FastAPI event loop
+For real-time phone conversations, this delay feels unnatural.
 
-3. **Processing Queue**
-   - Buffers generated audio chunks
-   - Uses a thread-safe queue for smooth streaming
+---
 
-4. **Audio Transformer Engine**
-   - Converts high-quality model output into:
-     - 8kHz audio
-     - G.711 μ-law encoding
-   - This is the standard format required by telephone networks
+# ✅ The Solution
+
+This project uses a **Streaming Producer-Consumer Architecture**.
+
+Instead of waiting for the full sentence:
+
+- Audio is generated chunk-by-chunk
+- Processed immediately
+- Streamed instantly to the caller
+
+### Result
+
+✅ Faster first response  
+✅ Natural conversational flow  
+✅ Real-time Telugu voice interaction
+
+---
+
+# 🏗️ System Architecture
+
+## Real-Time Audio Pipeline
+
+```text
+Client Request
+      ↓
+FastAPI Server
+      ↓
+Background TTS Worker
+      ↓
+Audio Queue
+      ↓
+Audio Processor
+      ↓
+G.711 μ-law Encoder
+      ↓
+Streaming Response
+      ↓
+Telephony Client (Twilio / SIP / IVR)
+```
+
+---
+
+# ⚡ Core Components
+
+## 1️⃣ FastAPI API Layer
+
+Handles:
+- Incoming synthesis requests
+- Streaming responses
+- Health checks
+
+---
+
+## 2️⃣ Background Worker Thread
+
+Runs the TTS model separately from the main API loop.
+
+Benefits:
+- Non-blocking execution
+- Smooth streaming
+- Better concurrency
+
+---
+
+## 3️⃣ Audio Queue
+
+Acts as a buffer between:
+- Audio generation
+- Audio streaming
+
+This ensures continuous playback without interruptions.
+
+---
+
+## 4️⃣ Audio Processing Engine
+
+Converts model-generated audio into:
+
+- 8kHz sample rate
+- G.711 μ-law encoding
+
+This format is required for:
+- Telephone systems
+- SIP calls
+- Twilio media streams
+
+---
+
+# 🧠 Why Telephony Audio Needs Conversion
+
+Modern AI models generate high-quality audio at:
+
+- 44.1kHz
+- 48kHz
+
+But phone networks only support:
+
+- 8kHz mono audio
+
+Without proper conversion:
+- Audio becomes robotic
+- Streaming may fail
+- Latency increases
+
+This project automatically handles:
+- Resampling
+- Encoding
+- Telephony optimization
 
 ---
 
 # 🛠️ Prerequisites
 
 ## Hardware
-- NVIDIA GPU (CUDA-capable) strongly recommended for real-time performance
 
-## Environment
-- Python 3.13+
-- CUDA 12.8
+### Recommended
+- NVIDIA GPU with CUDA support
 
-## Model Access
+### Minimum
+- CPU execution possible
+- Real-time performance may be slower
+
+---
+
+## Software Requirements
+
+| Requirement | Version |
+|---|---|
+| Python | 3.13+ |
+| CUDA | 12.8 |
+| OS | Windows / Linux |
+
+---
+
+## Hugging Face Access
+
 You must have access to:
 
-```bash
+```text
 ai4bharat/indic-parler-tts
+```
 
-on Hugging Face.
+---
 
-⚡ Quick Start
-1️⃣ Clone the Repository
+# ⚡ Quick Start
+
+# 1️⃣ Clone Repository
+
+```bash
 git clone https://github.com/SathwikVakalapudi/TTS_Project
 cd TTS_Project
-2️⃣ Create Virtual Environment
-Linux / Mac
+```
+
+---
+
+# 2️⃣ Create Virtual Environment
+
+## Linux / Mac
+
+```bash
 python -m venv venv
 source venv/bin/activate
-Windows
+```
+
+## Windows
+
+```bash
 python -m venv venv
 venv\Scripts\activate
-3️⃣ Install Dependencies
+```
+
+---
+
+# 3️⃣ Install Dependencies
+
+```bash
 pip install -r requirements.txt
-4️⃣ Authenticate with Hugging Face
+```
+
+---
+
+# 4️⃣ Authenticate with Hugging Face
+
+```bash
 huggingface-cli login
+```
 
 Enter your Hugging Face token when prompted.
 
-5️⃣ Download Model Weights
+---
+
+# 5️⃣ Download Model
+
+```bash
 python scripts/download_model.py
-6️⃣ Run the Server
+```
+
+---
+
+# 6️⃣ Start the Server
+
+```bash
 uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
 
-Server will start at:
+Server runs at:
 
+```text
 http://localhost:8000
-📡 API Endpoints
-Endpoint	Purpose	Output Format
-/synthesize/stream	Real-time streaming for calls	G.711 μ-law (8kHz)
-/synthesize/full	Standard synthesis	WAV (8kHz)
-/synthesize/hq	High-quality synthesis	WAV (44.1kHz)
-/health	Server health check	JSON
-🎯 Designed For
-Twilio Voice Bots
-SIP Telephony
-IVR Systems
-AI Call Centers
-Conversational Voice Agents
-Real-Time Telugu Assistants
-WebRTC Audio Pipelines
-🧠 Behind the Scenes
-Why 8kHz G.711?
+```
 
-Modern AI TTS models typically generate audio at:
+---
 
-44.1kHz
-48kHz
+# 📡 API Endpoints
 
-Traditional telephony systems only support:
+| Endpoint | Description | Output |
+|---|---|---|
+| `/synthesize/stream` | Real-time streaming synthesis | G.711 μ-law (8kHz) |
+| `/synthesize/full` | Standard synthesis | WAV (8kHz) |
+| `/synthesize/hq` | High-quality synthesis | WAV (44.1kHz) |
+| `/health` | Server health check | JSON |
 
-8kHz mono audio
+---
 
-If high-quality audio is streamed directly into a phone network:
+# 🎯 Best Use Cases
 
-Audio may fail
-Voice may sound robotic or metallic
-Latency increases significantly
+This project is ideal for:
 
-This project automatically:
+- AI Call Assistants
+- Customer Support Bots
+- Voice AI Agents
+- Telugu IVR Systems
+- SIP Audio Streaming
+- Real-Time AI Conversations
+- Twilio Media Streams
+- Voice-enabled Automation
 
-Resamples audio
-Encodes into G.711 μ-law
-Streams telephony-compatible chunks in real time
+---
 
-Result:
-✅ Low latency
-✅ Smooth playback
-✅ Natural phone-call audio quality
+# 📊 Performance Benchmarking
 
-⚙️ Real-Time Streaming Architecture
-Producer → Consumer Pipeline
-TTS Model (Producer)
-        ↓
-Audio Queue
-        ↓
-Audio Processor
-        ↓
-G.711 Encoder
-        ↓
-Streaming API Response
-        ↓
-Telephony Client (Twilio/SIP)
+A benchmarking utility is included:
 
-This architecture allows:
+```bash
+python scripts/benchmark.py
+```
 
-Continuous audio generation
-Chunk-by-chunk streaming
-Reduced buffering delays
-Near real-time interaction
-📊 Real-Time Factor (RTF)
+---
 
-The project includes a benchmarking suite:
+# 📈 Understanding RTF (Real-Time Factor)
 
-scripts/benchmark.py
-What is RTF?
-RTF < 1
+RTF measures how fast audio is generated compared to playback speed.
 
-✅ Audio is generated faster than playback speed
+---
 
-Ideal for real-time calls.
+## ✅ RTF < 1
 
-RTF > 1
+Audio generation is faster than playback.
 
-❌ Generation is slower than playback
+This is ideal.
+
+Example:
+- 1 second audio generated in 0.5 seconds
+
+---
+
+## ❌ RTF > 1
+
+Generation is slower than playback.
 
 This may cause:
+- Audio lag
+- Choppy streaming
+- Delayed responses
 
-Choppy audio
-Delays
-Caller interruptions
-📁 Project Structure
+---
+
+# 📁 Project Structure
+
+```text
 TTS_Project/
 │
 ├── src/
@@ -184,64 +322,78 @@ TTS_Project/
 ├── requirements.txt
 ├── README.md
 └── .gitignore
-🔥 Performance Features
-Real-time chunk streaming
-GPU accelerated inference
-Low-latency architecture
-Thread-safe processing queues
-Telephony-compatible audio pipeline
-Async FastAPI server
-Modular streaming engine
-🌍 Future Improvements
+```
 
-Potential areas for contribution:
+---
 
-Opus codec support for WebRTC
-TensorRT optimization
-Multi-speaker Telugu voices
-Additional Indic language support
-Dynamic voice cloning
-Streaming WebSocket API
-Kubernetes deployment support
-🤝 Contributing
+# 🔥 Key Features
 
-Contributions are welcome!
+✅ Real-time streaming  
+✅ GPU accelerated inference  
+✅ FastAPI backend  
+✅ Low-latency architecture  
+✅ Telephony-ready audio  
+✅ Streaming queue system  
+✅ Modular design  
+✅ Telugu speech synthesis
 
-If you'd like to improve the system:
+---
 
-Fork the repository
-Create a feature branch
-Submit a pull request
+# 🌍 Future Improvements
 
-Ideas:
+Planned enhancements:
 
-Faster inference optimization
-Better streaming codecs
-Improved buffering strategies
-Additional language support
-❤️ Acknowledgements
+- WebRTC support
+- Opus codec streaming
+- TensorRT optimization
+- Multi-speaker voices
+- Additional Indic languages
+- Voice cloning
+- Kubernetes deployment
+- WebSocket streaming APIs
 
-Built using:
+---
 
-FastAPI
-Hugging Face Transformers
-PyTorch
-Indic Parler TTS
-CUDA
+# 🤝 Contributing
 
-Special thanks to the Telugu AI and open-source community.
+Contributions are welcome.
 
-📜 License
+## Steps
 
-This project is licensed under the MIT License.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Submit a pull request
 
-⭐ Support
+---
 
-If you found this project useful:
+# ❤️ Built With
 
-Star the repository
-Share it with the community
-Contribute improvements
-🇮🇳 Built for the Future of Telugu Voice AI
+- FastAPI
+- PyTorch
+- Hugging Face Transformers
+- CUDA
+- Indic Parler TTS
 
-Empowering real-time conversational AI systems with natural Telugu speech for telephony and beyond.
+---
+
+# 📜 License
+
+Licensed under the MIT License.
+
+---
+
+# ⭐ Support the Project
+
+If this project helped you:
+
+- ⭐ Star the repository
+- 🍴 Fork the project
+- 🧠 Contribute improvements
+- 📢 Share with the community
+
+---
+
+# 🇮🇳 Built for the Future of Telugu Voice AI
+
+Delivering natural Telugu speech for real-time telephony and conversational AI systems.
